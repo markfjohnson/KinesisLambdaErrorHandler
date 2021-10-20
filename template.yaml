@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  LambdaKinesis
+
+  Demonstrate Error handling Integrating Lambda with Kinesis
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+    Tags:
+      Customer: CB
+      Project: KinesisNetworks
+
+Resources:
+  #-------------------------------------------------
+  # Scenario 1 run the Lambda functions at the Region level to talk to a Kinesis stream in the same region
+  S3EventData:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: "kds-eventdata"
+
+  s1eventdata:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: 1
+
+
+#  s1producer:
+#    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+#    Properties:
+#      CodeUri: s1_producer/
+#      Handler: producer.lambda_handler
+#      Runtime: python3.8
+#      Timeout: 30
+#      Tracing: Active
+#      Environment:
+#        Variables:
+#          STREAM_NAME: !Ref s1eventdata
+#          ROW_COUNT: 10
+#      Policies:
+#        - AWSLambdaKinesisExecutionRole
+#        - AmazonKinesisFullAccess
+  s1producerErr:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: s1_producer_errs/
+      Handler: producer.lambda_handler
+      Runtime: python3.8
+      Timeout: 30
+      FunctionName: KdsErrProducer
+      Environment:
+        Variables:
+          STREAM_NAME: !Ref s1eventdata
+          ROW_COUNT: 10
+      Policies:
+        - AWSLambdaKinesisExecutionRole
+        - AmazonKinesisFullAccess
+
+  s1consumer:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: s1_consumer/
+      Handler: consumer.lambda_handler
+      FunctionName: KdsConsumer
+      Runtime: python3.8
+      Layers:
+        - !Ref PythonPackages
+      Tracing: Active
+      Environment:
+        Variables:
+          STREAM_NAME: !Ref s1eventdata
+      Policies:
+        - AWSLambdaKinesisExecutionRole
+        - AmazonKinesisFullAccess
+        - AmazonSQSFullAccess
+      Events:
+        Stream:
+          Type: Kinesis
+          Properties:
+            Stream: !GetAtt s1eventdata.Arn
+            BatchSize: 5
+            MaximumBatchingWindowInSeconds: 100
+            StartingPosition: LATEST
+
+  PythonPackages:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: pypackages
+      CompatibleRuntimes:
+        - python3.8
+        - python3.7
+    Metadata:
+      BuildMethod: python3.8
+  s1consumerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${s1consumer}
+      RetentionInDays: 1
+
+  s1producerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${s1producerErr}
+      RetentionInDays: 1
+
+  dlqLambda:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: dlqlambda
+
+  SuccessQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: SuccessQueue
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+
+  S1ConsumerFunction:
+    Description: "scenario1 consumer Lambda Function ARN"
+    Value: !GetAtt s1consumer.Arn
+  S1ConsumerFunctionIamRole:
+    Description: "Implicit IAM Role created for Scenario1 Consumer"
+    Value: !GetAtt s1consumer.Arn
+  S1ProducerFunction:
+    Description: "scenario1 Producer Lambda Function ARN"
+    Value: !GetAtt s1producerErr.Arn
+  S1ProducerFunctionIamRole:
+    Description: "Implicit IAM Role created for Scenario1 Producer"
+    Value: !GetAtt s1producerErr.Arn
+  S1KinesisEventData:
+    Description: "S1 Kinesis Data Stream Name"
+    Value: !Ref s1eventdata
+
