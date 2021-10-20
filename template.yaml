@@ -65,6 +65,7 @@ Resources:
       Handler: consumer.lambda_handler
       FunctionName: KdsConsumer
       Runtime: python3.8
+      Timeout: 10
       Layers:
         - !Ref PythonPackages
       Tracing: Active
@@ -80,7 +81,7 @@ Resources:
           Type: Kinesis
           Properties:
             Stream: !GetAtt s1eventdata.Arn
-            BatchSize: 5
+            BatchSize: 100
             MaximumBatchingWindowInSeconds: 100
             StartingPosition: LATEST
 

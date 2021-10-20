@@ -38,15 +38,11 @@ def lambda_handler(event, context):
     logger.info("BEGIN Kinesis CONSUMER Lambda Handler")
     rcount = 0
     errCount = 0
-    try:
-        (rcount, errCount, records) = get_kinesis_records(event)
-        if errCount > 0:
-            raise Exception("Bad Input Data Format")
-        else:
-            status_code = 200
-    except Exception as err:
-        logger.error(err)
-        raise Exception(f"Exception Encountered: {err}")
+    (rcount, errCount, records) = get_kinesis_records(event)
+    if errCount > 0:
+        raise Exception("Bad Input Data Format")
+    else:
+        status_code = 200
 
     logger.info(f"END CONSUMER function complete - {status_code}")
     return {

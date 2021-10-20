@@ -28,6 +28,8 @@ You will see the Kinesis put response as well as the row count display as rows a
 ## Step 3: Check the error handling
 Go into Lambda -> Functions and click on the KdsConsumer function.  From there click on Monitor.  If all successful you will see various metrics.  We are interested in the "Error Count and success rate" monitoring pane, if all is successful at the end of the first producerInvoker you should see errors displayed here.
 
+
+
 Play around with various configurations in the template to experiment with different options.
 
 
