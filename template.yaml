@@ -10,8 +10,7 @@ Globals:
   Function:
     Timeout: 3
     Tags:
-      Customer: CB
-      Project: KinesisNetworks
+      Project: KinesisLambdaError
 
 Resources:
   #-------------------------------------------------
@@ -24,24 +23,9 @@ Resources:
   s1eventdata:
     Type: AWS::Kinesis::Stream
     Properties:
+      Name: LambdaKinesisTest2
       ShardCount: 1
 
-
-#  s1producer:
-#    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-#    Properties:
-#      CodeUri: s1_producer/
-#      Handler: producer.lambda_handler
-#      Runtime: python3.8
-#      Timeout: 30
-#      Tracing: Active
-#      Environment:
-#        Variables:
-#          STREAM_NAME: !Ref s1eventdata
-#          ROW_COUNT: 10
-#      Policies:
-#        - AWSLambdaKinesisExecutionRole
-#        - AmazonKinesisFullAccess
   s1producerErr:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -53,7 +37,7 @@ Resources:
       Environment:
         Variables:
           STREAM_NAME: !Ref s1eventdata
-          ROW_COUNT: 10
+          ROW_COUNT: 50
       Policies:
         - AWSLambdaKinesisExecutionRole
         - AmazonKinesisFullAccess
@@ -63,15 +47,15 @@ Resources:
     Properties:
       CodeUri: s1_consumer/
       Handler: consumer.lambda_handler
-      FunctionName: KdsConsumer
       Runtime: python3.8
       Timeout: 10
-      Layers:
-        - !Ref PythonPackages
+#      Layers:
+#        - !Ref PythonPackages
       Tracing: Active
       Environment:
         Variables:
           STREAM_NAME: !Ref s1eventdata
+          SUCCESS_SQS_URL: !Ref SuccessQueue
       Policies:
         - AWSLambdaKinesisExecutionRole
         - AmazonKinesisFullAccess
@@ -81,19 +65,27 @@ Resources:
           Type: Kinesis
           Properties:
             Stream: !GetAtt s1eventdata.Arn
-            BatchSize: 100
-            MaximumBatchingWindowInSeconds: 100
+            BatchSize: 10
+            MaximumBatchingWindowInSeconds: 20
+            MaximumRecordAgeInSeconds: 60
             StartingPosition: LATEST
+            MaximumRetryAttempts: 1
+            BisectBatchOnFunctionError: true
+            DestinationConfig:
+              OnFailure:
+                Destination: !GetAtt dlqLambda.Arn
 
-  PythonPackages:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      ContentUri: pypackages
-      CompatibleRuntimes:
-        - python3.8
-        - python3.7
-    Metadata:
-      BuildMethod: python3.8
+
+
+#  PythonPackages:
+#    Type: AWS::Serverless::LayerVersion
+#    Properties:
+#      ContentUri: pypackages
+#      CompatibleRuntimes:
+#        - python3.8
+#        - python3.7
+#    Metadata:
+#      BuildMethod: python3.8
   s1consumerLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -114,7 +106,7 @@ Resources:
   SuccessQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: SuccessQueue
+      QueueName: SuccessQueue1
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
@@ -136,4 +128,10 @@ Outputs:
   S1KinesisEventData:
     Description: "S1 Kinesis Data Stream Name"
     Value: !Ref s1eventdata
+  dlqSQSArn:
+    Description: "DLQ SQS Arn"
+    Value: !GetAtt dlqLambda.Arn
+  SuccessSQSArn:
+    Description: "Success SQS Arn"
+    Value: !GetAtt SuccessQueue.Arn
 
