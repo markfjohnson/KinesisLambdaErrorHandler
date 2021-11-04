@@ -7,7 +7,7 @@ max_rows = 1
 client = boto3.client('lambda')
 for x in range (0, max_rows):
     response = client.invoke(
-        FunctionName='KdsErrProducer',
+        FunctionName='sqsReader',
         InvocationType='Event',
         Payload=payload3
     )

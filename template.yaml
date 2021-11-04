@@ -31,7 +31,7 @@ Resources:
     Properties:
       CodeUri: s1_producer_errs/
       Handler: producer.lambda_handler
-      Runtime: python3.8
+      Runtime: python3.9
       Timeout: 30
       FunctionName: KdsErrProducer
       Environment:
@@ -47,7 +47,7 @@ Resources:
     Properties:
       CodeUri: s1_consumer/
       Handler: consumer.lambda_handler
-      Runtime: python3.8
+      Runtime: python3.9
       Timeout: 10
 #      Layers:
 #        - !Ref PythonPackages
@@ -65,31 +65,47 @@ Resources:
           Type: Kinesis
           Properties:
             Stream: !GetAtt s1eventdata.Arn
-            BatchSize: 10
+            BatchSize: 1
             MaximumBatchingWindowInSeconds: 20
             MaximumRecordAgeInSeconds: 60
             StartingPosition: LATEST
-            MaximumRetryAttempts: 1
+            MaximumRetryAttempts: 3
             BisectBatchOnFunctionError: true
             DestinationConfig:
               OnFailure:
                 Destination: !GetAtt dlqLambda.Arn
 
+  sqsReader:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: readSQSqueues/
+      Handler: readSQSqueues.lambda_handler
+      Runtime: python3.9
+      Timeout: 10
+      FunctionName: sqsReader
+      Tracing: Active
+      Environment:
+        Variables:
+          STREAM_NAME: !Ref s1eventdata
+          SUCCESS_SQS_URL: !Ref SuccessQueue
+          ERROR_SQS_URL: !Ref ErrorQueue
+          DLQ_SQS_URL: !Ref dlqLambda
+      Policies:
+        - AWSLambdaKinesisExecutionRole
+        - AmazonKinesisFullAccess
+        - AmazonSQSFullAccess
 
 
-#  PythonPackages:
-#    Type: AWS::Serverless::LayerVersion
-#    Properties:
-#      ContentUri: pypackages
-#      CompatibleRuntimes:
-#        - python3.8
-#        - python3.7
-#    Metadata:
-#      BuildMethod: python3.8
   s1consumerLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${s1consumer}
+      RetentionInDays: 1
+
+  sqsReaderLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${sqsReader}
       RetentionInDays: 1
 
   s1producerLogGroup:
@@ -107,6 +123,16 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: SuccessQueue1
+
+  ErrorQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: errorQueue
+
+  InfraQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: infraQueue1
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

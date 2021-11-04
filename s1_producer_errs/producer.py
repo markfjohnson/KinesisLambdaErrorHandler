@@ -6,10 +6,11 @@ import random
 import string
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 streamname = os.getenv('STREAM_NAME')
 row_count = int(os.getenv('ROW_COUNT'))
 kinesis_client = boto3.client('kinesis')
+logger.info("Writing to Kinesis Stream")
 
 
 def put_to_stream(client, thing_id, property_value, i):

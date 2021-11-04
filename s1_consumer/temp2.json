@@ -1,0 +1,24 @@
+{
+  "requestContext": {
+    "requestId": "32c7ce82-02d4-4c50-809e-d3b765340272",
+    "functionArn": "arn:aws:lambda:us-east-1:729451883946:function:lerr-s1consumer-QE7MozExF1tm",
+    "condition": "RetryAttemptsExhausted",
+    "approximateInvokeCount": 3
+  },
+  "responseContext": {
+    "statusCode": 200,
+    "executedVersion": "$LATEST",
+    "functionError": "Unhandled"
+  },
+  "version": "1.0",
+  "timestamp": "2021-10-29T21:47:46.297Z",
+  "KinesisBatchInfo": {
+    "shardId": "shardId-000000000000",
+    "startSequenceNumber": "49623436492885116520909384514920940742956181649792958466",
+    "endSequenceNumber": "49623436492885116520909384514925776446234640166491783170",
+    "approximateArrivalOfFirstRecord": "2021-10-29T21:46:10.393Z",
+    "approximateArrivalOfLastRecord": "2021-10-29T21:46:10.573Z",
+    "batchSize": 5,
+    "streamArn": "arn:aws:kinesis:us-east-1:729451883946:stream/LambdaKinesisTest2"
+  }
+}
