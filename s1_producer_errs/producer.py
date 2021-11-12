@@ -43,9 +43,8 @@ def generate_date(client, row_count):
     logger.info("  Starting to generate data")
     for i in range(0, row_count):
         property_value = random.randint(40, 120)
-        thing_id_list = ['aa-OK','aa-badformat']
-        thing_id = random.choices(thing_id_list, weights=[.8, .2], k=1)[0]
-#        thing_id = 'aa-OK'
+        thing_id_list = ['aa-OK','aa-infra','aa-badformat']
+        thing_id = random.choices(thing_id_list, weights=[.7, .2,.1], k=1)[0]
         logger.info(f"Thing_id = {thing_id}")
         r = put_to_stream(client, thing_id, property_value, i)
         logger.info(f"{i} row put with response = {r}")

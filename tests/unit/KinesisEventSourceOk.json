@@ -1,0 +1,20 @@
+{
+  "Records": [
+    {
+      "kinesis": {
+        "kinesisSchemaVersion": "1.0",
+        "partitionKey": "aa-retry",
+        "sequenceNumber": "49623769746657877206305852292565488446270574959762866178",
+        "data": "eyJwcm9wIjogIjYwIiwgIml0ZXJhdGlvbiI6IDksICJ0aGluZ19pZCI6ICJhYS1yZXRyeSIsICJwcm9wZXJ0eV92YWx1ZSI6IDYwfQ==",
+        "approximateArrivalTimestamp": 1636472330.45
+      },
+      "eventSource": "aws:kinesis",
+      "eventVersion": "1.0",
+      "eventID": "shardId-000000000000:49623769746657877206305852292565488446270574959762866178",
+      "eventName": "aws:kinesis:record",
+      "invokeIdentityArn": "arn:aws:iam::729451883946:role/l-s1consumerRole-LLS8DKD90XKM",
+      "awsRegion": "us-east-1",
+      "eventSourceARN": "arn:aws:kinesis:us-east-1:729451883946:stream/LambdaKinesisTest2"
+    }
+  ]
+}

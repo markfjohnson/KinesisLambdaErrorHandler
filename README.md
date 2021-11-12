@@ -38,3 +38,10 @@ Play around with various configurations in the template to experiment with diffe
 Next steps in the project are:
 * Add DLQ output from the consumer.py
 
+# DISCOVERY QUESTIONS FOR NAIM
+* How long do the Lambda functions take to invoke?
+
+# GOALS
+1. Verify duplicate impact
+2. 
+

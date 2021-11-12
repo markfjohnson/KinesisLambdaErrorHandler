@@ -37,17 +37,62 @@ Resources:
       Environment:
         Variables:
           STREAM_NAME: !Ref s1eventdata
-          ROW_COUNT: 50
+          ROW_COUNT: 10
       Policies:
         - AWSLambdaKinesisExecutionRole
         - AmazonKinesisFullAccess
+        - AWSLambda_FullAccess
 
-  s1consumer:
+  gatherTrigger:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: s1_consumer/
-      Handler: consumer.lambda_handler
+      Handler: gather.lambda_handler
       Runtime: python3.9
+      FunctionName: gatherTrigger
+      Timeout: 10
+      Tracing: Active
+      Policies:
+        - AmazonSQSFullAccess
+        - AWSLambdaExecute
+        - AWSLambda_FullAccess
+      Environment:
+        Variables:
+          SQS_Queue_URL: !Ref TimeoutQueue
+          TRIGGERED: "Invoke"
+      Events:
+        SQSSuccessEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt TimeoutQueue.Arn
+            BatchSize: 30
+            MaximumBatchingWindowInSeconds: 120
+
+  gatherManual:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: s1_consumer/
+      Handler: gather.lambda_handler
+      Runtime: python3.9
+      FunctionName: gatherManual
+      Timeout: 10
+      Tracing: Active
+      Policies:
+        - AmazonSQSFullAccess
+        - AWSLambda_FullAccess
+      Environment:
+        Variables:
+          SQS_Queue_URL: !Ref InfraQueue
+          TRIGGERED: "None"
+
+
+  PublisherToMilestones:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: s1_consumer/
+      Handler: PublishMilestones.lambda_handler
+      Runtime: python3.9
+      FunctionName: PublishMilestones
       Timeout: 10
 #      Layers:
 #        - !Ref PythonPackages
@@ -55,58 +100,28 @@ Resources:
       Environment:
         Variables:
           STREAM_NAME: !Ref s1eventdata
-          SUCCESS_SQS_URL: !Ref SuccessQueue
+          TIMEOUT_SQS_URL: !Ref TimeoutQueue
+          DLQ_SQS_URL: !Ref dlqQueue
+          INFRA_SQS_URL: !Ref InfraQueue
       Policies:
         - AWSLambdaKinesisExecutionRole
         - AmazonKinesisFullAccess
         - AmazonSQSFullAccess
+        - AWSLambda_FullAccess
       Events:
         Stream:
           Type: Kinesis
           Properties:
             Stream: !GetAtt s1eventdata.Arn
-            BatchSize: 1
+            BatchSize: 20
             MaximumBatchingWindowInSeconds: 20
-            MaximumRecordAgeInSeconds: 60
+            MaximumRecordAgeInSeconds: 120
             StartingPosition: LATEST
-            MaximumRetryAttempts: 3
+            MaximumRetryAttempts: 0
             BisectBatchOnFunctionError: true
-            DestinationConfig:
-              OnFailure:
-                Destination: !GetAtt dlqLambda.Arn
-
-  sqsReader:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-    Properties:
-      CodeUri: readSQSqueues/
-      Handler: readSQSqueues.lambda_handler
-      Runtime: python3.9
-      Timeout: 10
-      FunctionName: sqsReader
-      Tracing: Active
-      Environment:
-        Variables:
-          STREAM_NAME: !Ref s1eventdata
-          SUCCESS_SQS_URL: !Ref SuccessQueue
-          ERROR_SQS_URL: !Ref ErrorQueue
-          DLQ_SQS_URL: !Ref dlqLambda
-      Policies:
-        - AWSLambdaKinesisExecutionRole
-        - AmazonKinesisFullAccess
-        - AmazonSQSFullAccess
 
 
-  s1consumerLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${s1consumer}
-      RetentionInDays: 1
 
-  sqsReaderLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${sqsReader}
-      RetentionInDays: 1
 
   s1producerLogGroup:
     Type: AWS::Logs::LogGroup
@@ -114,50 +129,47 @@ Resources:
       LogGroupName: !Sub /aws/lambda/${s1producerErr}
       RetentionInDays: 1
 
-  dlqLambda:
-    Type: AWS::SQS::Queue
+  gatherTriggerLogGroup:
+    Type: AWS::Logs::LogGroup
     Properties:
-      QueueName: dlqlambda
+      LogGroupName: !Sub /aws/lambda/${gatherTrigger}
+      RetentionInDays: 1
 
-  SuccessQueue:
-    Type: AWS::SQS::Queue
+  gatherManualLogGroup:
+    Type: AWS::Logs::LogGroup
     Properties:
-      QueueName: SuccessQueue1
+      LogGroupName: !Sub /aws/lambda/${gatherManual}
+      RetentionInDays: 1
 
-  ErrorQueue:
+  dlqQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: errorQueue
+      QueueName: dlqQueue
+
+
+
+  TimeoutQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: TimeoutQueue
 
   InfraQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: infraQueue1
+      QueueName: infraQueue
 
-Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
 
-  S1ConsumerFunction:
-    Description: "scenario1 consumer Lambda Function ARN"
-    Value: !GetAtt s1consumer.Arn
-  S1ConsumerFunctionIamRole:
-    Description: "Implicit IAM Role created for Scenario1 Consumer"
-    Value: !GetAtt s1consumer.Arn
-  S1ProducerFunction:
-    Description: "scenario1 Producer Lambda Function ARN"
-    Value: !GetAtt s1producerErr.Arn
-  S1ProducerFunctionIamRole:
-    Description: "Implicit IAM Role created for Scenario1 Producer"
-    Value: !GetAtt s1producerErr.Arn
-  S1KinesisEventData:
-    Description: "S1 Kinesis Data Stream Name"
-    Value: !Ref s1eventdata
-  dlqSQSArn:
-    Description: "DLQ SQS Arn"
-    Value: !GetAtt dlqLambda.Arn
-  SuccessSQSArn:
-    Description: "Success SQS Arn"
-    Value: !GetAtt SuccessQueue.Arn
+
+  SuccessTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: "Success"
+      PrimaryKey:
+        Name: iteration
+        Type: Number
+
+
+
+
+
 

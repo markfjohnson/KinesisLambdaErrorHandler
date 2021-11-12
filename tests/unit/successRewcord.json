@@ -1,0 +1,8 @@
+[
+  {
+    "MessageId": "9964f5a8-da5e-4c74-8874-010afa7db721",
+    "ReceiptHandle": "AQEBuxVSMHPLoIweCOi/KhRapLEHrPdBYKHdNCR/uMl0K2awJ+x3XxU+lts6sv4w3kUTZSOFZnzBBKJ4wv+sJBzA2zwz7yL3EqznsmbO5ktQAeJAcjWnEiMbszYaDoe036xMm/eZy+2IPheDYSytecT1qOVSmKvFAlOAessUtGsVKDrSKQnvK90QP9wNXdZ3KPEtl0WNlBHSVpcA1W9HualU4Ajsym8qUB03u7mu6QN1YHO1k84sU0/TyYEh/YxoVtCB/JyMyHcHVhEvOBywsWaYS0B/wdLAxoV8o2+M7jxZl11MqJPzRbMnqfKP0iTTQkTMymTkbWvLyP8/1rGKxc2fH2sRdvA0oqgLHMVPNn5QGe26aRmlw3jnC9Y9VbuRiYVGXx8gVELJje0zhyLzgxhBDw==",
+    "MD5OfBody": "647918661b36bcf6a1e1c728b9322143",
+    "Body": "{\"TestDataOk\": \"SuccessfulRetry\", \"INVALIDRECORD\": {\"kinesis\": {\"kinesisSchemaVersion\": \"1.0\", \"partitionKey\": \"aa-retry\", \"sequenceNumber\": \"49623767697487002403723953051356470326110980536530894850\", \"data\": \"eyJwcm9wIjogIjEwNyIsICJpdGVyYXRpb24iOiA4LCAidGhpbmdfaWQiOiAiYWEtcmV0cnkiLCAicHJvcGVydHlfdmFsdWUiOiAxMDd9\", \"approximateArrivalTimestamp\": 1636465574.554}, \"eventSource\": \"aws:kinesis\", \"eventVersion\": \"1.0\", \"eventID\": \"shardId-000000000000:49623767697487002403723953051356470326110980536530894850\", \"eventName\": \"aws:kinesis:record\", \"invokeIdentityArn\": \"arn:aws:iam::729451883946:role/lerr-s1consumerRole-W0U9HXQOVD04\", \"awsRegion\": \"us-east-1\", \"eventSourceARN\": \"arn:aws:kinesis:us-east-1:729451883946:stream/LambdaKinesisTest2\"}, \"Payload\": {\"prop\": \"107\", \"iteration\": 8, \"thing_id\": \"aa-retry\", \"property_value\": 107}}"
+  }
+]

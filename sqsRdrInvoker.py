@@ -17,4 +17,3 @@ for x in range (0, max_rows):
 
 print("Finished")
 
-# TODO Simulate the DLQ

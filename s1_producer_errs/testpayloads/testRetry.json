@@ -9,9 +9,9 @@
       "eventSourceARN": "arn:aws:kinesis:ap-northeast-1:999999999999:stream/test",
     "kinesis": {
       "kinesisSchemaVersion": "1.0",
-      "partitionKey": "aa-badformat",
+      "partitionKey": "aa-retry",
       "sequenceNumber": "49574408222142592692164662027912822768781511344925966338",
-      "data": "eyd0aGluZ19pZCc6ICdhYS1iYWRmb3JtYXQnLCAnaXRlcmF0aW9uJzoxLCAndmFsdWUnOidzb21ldGhpbmcnfQ=="
+      "data": "eyd0aGluZ19pZCc6ICdhYS1yZXRyeScsICdpdGVyYXRpb24nOjEsICd2YWx1ZSc6J3NvbWV0aGluZyd9"
     }
   }
 ]}
