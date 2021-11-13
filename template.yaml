@@ -145,6 +145,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: dlqQueue
+      DelaySeconds: 5
 
 
 
@@ -152,11 +153,14 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: TimeoutQueue
+      DelaySeconds: 5
+      ReceiveMessageWaitTimeSeconds: 20
 
   InfraQueue:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: infraQueue
+      DelaySeconds: 5
 
 
 
