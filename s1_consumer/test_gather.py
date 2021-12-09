@@ -1,55 +1,105 @@
 import time
-import unittest
-import gather
-import json
+from unittest import TestCase
+
 import boto3
 
+from lib.aws_utility import purgeSuccessTable
+from lib.aws_utility import getSuccessCount
+from lib.aws_utility import getTimedOutCount
+from lib.aws_utility import get_messages_from_queue
+import gather
+
 SQS_URL = "https://sqs.us-east-1.amazonaws.com/729451883946/test_sqs"
+
 sqs = boto3.client('sqs')
+TIMEOUT_URL = sqs.get_queue_url(QueueName="TimeoutQueue")['QueueUrl']
+dynamodb = boto3.resource('dynamodb')
+success_table = dynamodb.Table('Success')
 
 
-def postToSQS(msgPayload, delay_seconds, sqs_url):
-    # Send message to SQS queue
-    payload = json.dumps(msgPayload)
-    response = sqs.send_message(
-        QueueUrl=sqs_url,
-        DelaySeconds=delay_seconds,
-        MessageBody=payload
-    )
-    return response
+
+class TestGatherCase(TestCase):
 
 
-class TestGatherCase(unittest.TestCase):
+    def setUp(self):
+        purgeSuccessTable()
 
-    def test_getSQSrecords(self):
-        """Verify get returns just the records passed as part of the setup"""
-        a = [{
-            "Field1": "AA",
-            "iteration": 0
-        },
-            {
-                "Field1": "BB",
-                "iteration": 1
-            }]
-        responses = postToSQS(a, 0, SQS_URL)
-        print(responses)
-        time.sleep(20)
-        messages = gather.getSQSrecords(SQS_URL)
-        print(len(messages))
+    def test_get_messages_from_queue(self):
+        messages = get_messages_from_queue(TIMEOUT_URL)
         print(messages)
-        assert (len(messages) == 2)
+        assert(messages.get('Messages') is not None)
+        assert(len(messages.get('Messages')) == 2)
+
+
+    def test_countSQSqueue(self):
+        cnt = getTimedOutCount('TimeoutQueue')
+        assert(cnt==5)
+
+
+    def test_getSuccessCount(self):
+        assert (1==2)
+
 
     def test_repostPublisherToMilestoneLambda(self):
-        a = [{
-            "Field1": "AA",
-            "iteration": 0
-        },
+        repostRecords = {'Records': [ {
+             "eventSource": "aws:kinesis",
+              "eventVersion": "1.0",
+              "eventID": "shardId-000000000000:49574408222142592692164662027912822768781511344925966338",
+              "eventName": "aws:kinesis:record",
+              "invokeIdentityArn": "arn:aws:iam::999999999999:role/lambda_kinesis",
+              "awsRegion": "ap-northeast-1",
+              "eventSourceARN": "arn:aws:kinesis:ap-northeast-1:999999999999:stream/test",
+            "kinesis": {
+              "kinesisSchemaVersion": "1.0",
+              "partitionKey": "aa-OK",
+              "sequenceNumber": "49574408222142592692164662027912822768781511344925966338",
+              "data": "eyd0aGluZ19pZCc6ICdhYS1pbmZyYScsICdpdGVyYXRpb24nOjMsICd2YWx1ZSc6J2JhZCBwZXJtaXNzaW9ucyd9"
+            }
+          },
             {
-                "Field1": "BB",
-                "iteration": 1
-            }]
-        response = gather.repostPublisherToMilestoneLambda(a)
-        assert (response['StatusCode'] == 202)
+                "eventSource": "aws:kinesis",
+                "eventVersion": "1.0",
+                "eventID": "shardId-000000000000:49574408222142592692164662027912822768781511344925966338",
+                "eventName": "aws:kinesis:record",
+                "invokeIdentityArn": "arn:aws:iam::999999999999:role/lambda_kinesis",
+                "awsRegion": "ap-northeast-1",
+                "eventSourceARN": "arn:aws:kinesis:ap-northeast-1:999999999999:stream/test",
+                "kinesis": {
+                    "kinesisSchemaVersion": "1.0",
+                    "partitionKey": "aa-OK",
+                    "sequenceNumber": "49574408222142592692164662027912822768781511344925966338",
+                    "data": "eyd0aGluZ19pZCc6ICdhYS1pbmZyYScsICdpdGVyYXRpb24nOjMsICd2YWx1ZSc6J2JhZCBwZXJtaXNzaW9ucyd9"
+                }
+            },
+            {
+                "eventSource": "aws:kinesis",
+                "eventVersion": "1.0",
+                "eventID": "shardId-000000000000:49574408222142592692164662027912822768781511344925966338",
+                "eventName": "aws:kinesis:record",
+                "invokeIdentityArn": "arn:aws:iam::999999999999:role/lambda_kinesis",
+                "awsRegion": "ap-northeast-1",
+                "eventSourceARN": "arn:aws:kinesis:ap-northeast-1:999999999999:stream/test",
+                "kinesis": {
+                    "kinesisSchemaVersion": "1.0",
+                    "partitionKey": "aa-OK",
+                    "sequenceNumber": "49574408222142592692164662027912822768781511344925966338",
+                    "data": "eyd0aGluZ19pZCc6ICdhYS1pbmZyYScsICdpdGVyYXRpb24nOjMsICd2YWx1ZSc6J2JhZCBwZXJtaXNzaW9ucyd9"
+                }
+            }
+        ]
+        }
+        gather.repostPublisherToMilestoneLambda(repostRecords)
+        time.sleep(120)
+        sucCount = getSuccessCount(success_table)
+        print("Success Count", sucCount)
+        assert(sucCount == 3)
+
+        # Loop through get messages in dynamodb until all 3 records received
+
+
+
+
+
 
     def test_getMessagesFromEvent(self):
         eventSource = {
@@ -93,5 +143,4 @@ class TestGatherCase(unittest.TestCase):
         assert(result['StatusCode']==202)
 
 
-if __name__ == '__main__':
-    unittest.main()
+

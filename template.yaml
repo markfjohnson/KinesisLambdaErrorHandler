@@ -29,6 +29,8 @@ Resources:
   s1producerErr:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      Architectures:
+        - arm64
       CodeUri: s1_producer_errs/
       Handler: producer.lambda_handler
       Runtime: python3.9
@@ -46,6 +48,8 @@ Resources:
   gatherTrigger:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      Architectures:
+        - arm64
       CodeUri: s1_consumer/
       Handler: gather.lambda_handler
       Runtime: python3.9
@@ -71,6 +75,8 @@ Resources:
   gatherManual:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      Architectures:
+        - arm64
       CodeUri: s1_consumer/
       Handler: gather.lambda_handler
       Runtime: python3.9
@@ -85,17 +91,27 @@ Resources:
           SQS_Queue_URL: !Ref InfraQueue
           TRIGGERED: "None"
 
+  LibLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      CompatibleRuntimes:
+        - python3.9
+      ContentUri: lib
+      Description: Provides the base backend shared library and dependencies
+      LayerName: liblayer
 
   PublisherToMilestones:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      Architectures:
+        - arm64
       CodeUri: s1_consumer/
       Handler: PublishMilestones.lambda_handler
       Runtime: python3.9
       FunctionName: PublishMilestones
       Timeout: 10
-#      Layers:
-#        - !Ref PythonPackages
+      Layers:
+        - !Ref LibLayer
       Tracing: Active
       Environment:
         Variables:
@@ -104,10 +120,11 @@ Resources:
           DLQ_SQS_URL: !Ref dlqQueue
           INFRA_SQS_URL: !Ref InfraQueue
       Policies:
-        - AWSLambdaKinesisExecutionRole
-        - AmazonKinesisFullAccess
-        - AmazonSQSFullAccess
-        - AWSLambda_FullAccess
+      - AWSLambdaKinesisExecutionRole
+      - AmazonKinesisFullAccess
+      - AmazonSQSFullAccess
+      - AWSLambda_FullAccess
+      - AmazonDynamoDBFullAccess
       Events:
         Stream:
           Type: Kinesis
@@ -119,9 +136,6 @@ Resources:
             StartingPosition: LATEST
             MaximumRetryAttempts: 0
             BisectBatchOnFunctionError: true
-
-
-
 
   s1producerLogGroup:
     Type: AWS::Logs::LogGroup
@@ -139,6 +153,12 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${gatherManual}
+      RetentionInDays: 1
+
+  PublisherToMilestonesLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${PublisherToMilestones}
       RetentionInDays: 1
 
   dlqQueue:

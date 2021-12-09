@@ -3,7 +3,7 @@ import boto3
 
 payload3=b"""{
 }"""
-max_rows = 1
+max_rows = 20
 client = boto3.client('lambda')
 for x in range (0, max_rows):
     response = client.invoke(

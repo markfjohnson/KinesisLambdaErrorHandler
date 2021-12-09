@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 import boto3
@@ -6,37 +5,16 @@ import json
 import time
 
 
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
 INFRA_SQS_URL = os.getenv('INFRA_SQS_URL')
 triggeredInvoke = os.getenv("TRIGGERED")
 pauseTime = 30
 kinesis_client = boto3.client('kinesis')
 client = boto3.client('lambda')
-sqs = boto3.client('sqs')
 
-def getSQSrecords(sqs_url):
-    logger.info(f"Output from SQS {sqs_url}")
-    response = sqs.receive_message(
-        QueueUrl = sqs_url,
-        MaxNumberOfMessages= 10,
-    )
-    messageList = []
-    logger.info(f"Number of messages received: {len(response.get('Messages', []))}")
-    for message in response.get("Messages", []):
-        # Prepare the message body for reposting
-        m = message["Body"].replace("'\"","\"")
-        msgs = json.loads(m)
-        messageList.extend(msgs)
-        # Get the receipt handle
-        receipt_handle = message['ReceiptHandle']
-        # Delete received message from queue
-        sqs.delete_message(
-            QueueUrl=sqs_url,
-            ReceiptHandle=receipt_handle
-        )
-    logger.info(f"Message List:  {messageList}")
-    return messageList
 
 
 def repostPublisherToMilestoneLambda(messages):
@@ -80,6 +58,28 @@ def getMessagesFromEvent(evt):
 
     return recordstr
 
+def getSQSrecords(sqs_url):
+    logger.info(f"Output from SQS {sqs_url}")
+    response = sqs.receive_message(
+        QueueUrl = sqs_url,
+        MaxNumberOfMessages= 10,
+    )
+    messageList = []
+    logger.info(f"Number of messages received: {len(response.get('Messages', []))}")
+    for message in response.get("Messages", []):
+        # Prepare the message body for reposting
+        m = message["Body"].replace("'\"","\"")
+        msgs = json.loads(m)
+        messageList.extend(msgs)
+        # Get the receipt handle
+        receipt_handle = message['ReceiptHandle']
+        # Delete received message from queue
+        sqs.delete_message(
+            QueueUrl=sqs_url,
+            ReceiptHandle=receipt_handle
+        )
+    logger.debug(f"Message List:  {messageList}")
+    return messageList
 
 def lambda_handler(event, context):
     logger.info("===================================================================================================")
